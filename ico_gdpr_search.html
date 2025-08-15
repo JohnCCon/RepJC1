@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICO UK-GDPR Search Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .search-section {
+            padding: 40px;
+        }
+
+        .search-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+
+        .search-input {
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .category-select {
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-btn {
+            padding: 18px 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results-section {
+            background: #f8f9ff;
+            border-top: 1px solid #e0e0e0;
+            min-height: 200px;
+            display: none;
+        }
+
+        .results-header {
+            padding: 30px 40px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: white;
+        }
+
+        .results-header h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .results-count {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .results-list {
+            padding: 0 40px 40px;
+        }
+
+        .result-item {
+            background: white;
+            margin: 20px 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-header {
+            padding: 25px 30px 15px;
+        }
+
+        .result-title {
+            color: #2c3e50;
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .result-url {
+            color: #667eea;
+            font-size: 0.9em;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .result-url:hover {
+            text-decoration: underline;
+        }
+
+        .result-content {
+            padding: 0 30px 25px;
+        }
+
+        .result-snippet {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .result-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .result-tag {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 40px;
+            color: #666;
+        }
+
+        .no-results h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .quick-links {
+            margin-top: 40px;
+            padding: 30px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 15px;
+        }
+
+        .quick-links h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .quick-link {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #2c3e50;
+            transition: all 0.3s ease;
+            border-left: 3px solid #667eea;
+        }
+
+        .quick-link:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .search-section {
+                padding: 30px 20px;
+            }
+            
+            .results-header, .results-list {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 ICO UK-GDPR Search</h1>
+            <p>Search the ICO website for detailed UK-GDPR guidance and information</p>
+        </div>
+        
+        <div class="search-section">
+            <form class="search-form" id="searchForm">
+                <div class="form-group">
+                    <label for="searchQuery">Your UK-GDPR Question or Topic</label>
+                    <input 
+                        type="text" 
+                        id="searchQuery" 
+                        class="search-input" 
+                        placeholder="e.g. 'data breach notification requirements' or 'lawful basis for processing'"
+                        required
+                    />
+                </div>
+                
+                <div class="form-group">
+                    <label for="categorySelect">Focus Area (Optional)</label>
+                    <select id="categorySelect" class="category-select">
+                        <option value="">All Topics</option>
+                        <option value="data protection principles">Data Protection Principles</option>
+                        <option value="lawful basis">Lawful Basis for Processing</option>
+                        <option value="data breaches">Data Breaches</option>
+                        <option value="individual rights">Individual Rights</option>
+                        <option value="data protection officer">Data Protection Officers</option>
+                        <option value="privacy notices">Privacy Notices</option>
+                        <option value="consent">Consent</option>
+                        <option value="children">Children's Data</option>
+                        <option value="international transfers">International Transfers</option>
+                        <option value="subject access request">Subject Access Requests (SAR)</option>
+                        <option value="eea">European Economic Area (EEA)</option>
+                        <option value="accountability">Accountability</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="search-btn" id="searchBtn">
+                    Search ICO Guidance
+                </button>
+            </form>
+            
+            <div class="loading" id="loadingDiv">
+                <div class="spinner"></div>
+                Searching ICO website...
+            </div>
+        </div>
+        
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h2>Search Results</h2>
+                <div class="results-count" id="resultsCount"></div>
+            </div>
+            <div class="results-list" id="resultsList">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+        
+        <div class="quick-links">
+            <h3>Quick Access to Key ICO Resources</h3>
+            <div class="links-grid">
+                <a href="https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/" class="quick-link" target="_blank">
+                    📋 UK-GDPR Guidance Overview
+                </a>
+                <a href="https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/individual-rights/" class="quick-link" target="_blank">
+                    👤 Individual Rights Guide
+                </a>
+                <a href="https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/lawful-basis/" class="quick-link" target="_blank">
+                    ⚖️ Lawful Basis for Processing
+                </a>
+                <a href="https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/data-breaches/" class="quick-link" target="_blank">
+                    🚨 Data Breach Guidance
+                </a>
+                <a href="https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/accountability-and-governance/" class="quick-link" target="_blank">
+                    🔐 Accountability & Governance
+                </a>
+                <a href="https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/international-transfers/" class="quick-link" target="_blank">
+                    🌍 International Transfers
+                </a>
+                <a href="https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/individual-rights/right-of-access/" class="quick-link" target="_blank">
+                    📋 Subject Access Requests (SAR)
+                </a>
+                <a href="https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/international-transfers/eea-transfers/" class="quick-link" target="_blank">
+                    🇪🇺 EEA & Data Transfers
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated ICO search results data
+        const mockResults = {
+            'data breach': [
+                {
+                    title: 'Data Breach Notification Requirements',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/data-breaches/notification-requirements/',
+                    snippet: 'Organizations must notify the ICO within 72 hours of becoming aware of a personal data breach, unless the breach is unlikely to result in a risk to individuals\' rights and freedoms.',
+                    tags: ['Data Breaches', 'Notification', 'Timeline']
+                },
+                {
+                    title: 'What Constitutes a Personal Data Breach',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/data-breaches/what-is-a-breach/',
+                    snippet: 'A personal data breach is a breach of security leading to the accidental or unlawful destruction, loss, alteration, unauthorised disclosure of, or access to, personal data.',
+                    tags: ['Data Breaches', 'Definition', 'Security']
+                }
+            'lawful basis': [
+                {
+                    title: 'Six Lawful Bases for Processing',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/lawful-basis/overview/',
+                    snippet: 'There are six lawful bases for processing: consent, contract, legal obligation, vital interests, public task, and legitimate interests.',
+                    tags: ['Lawful Basis', 'Processing', 'Legal Requirements']
+                },
+                {
+                    title: 'Legitimate Interests Assessment',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/lawful-basis/legitimate-interests/',
+                    snippet: 'When relying on legitimate interests, you must conduct a balancing test to ensure your interests do not override the individual\'s rights and freedoms.',
+                    tags: ['Legitimate Interests', 'Balancing Test', 'Assessment']
+                }
+            ],
+            'consent': [
+                {
+                    title: 'Consent Under UK-GDPR',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/lawful-basis/consent/',
+                    snippet: 'Consent must be freely given, specific, informed and unambiguous. It should be as easy to withdraw consent as it is to give it.',
+                    tags: ['Consent', 'Lawful Basis', 'Requirements']
+                },
+                {
+                    title: 'Children and Consent',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/children/consent/',
+                    snippet: 'Special protections apply to children under 18 years old. For online services, valid consent can only be obtained from children aged 13 or over.',
+                    tags: ['Children', 'Consent', 'Age Verification']
+                }
+            ],
+            'subject access request': [
+                {
+                    title: 'Subject Access Requests (SAR) - Your Right to Access Personal Data',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/individual-rights/right-of-access/',
+                    snippet: 'Individuals have the right to request access to their personal data and supplementary information. Organizations must respond within one month and cannot charge a fee in most cases.',
+                    tags: ['Individual Rights', 'SAR', 'Data Access']
+                },
+                {
+                    title: 'How to Handle Subject Access Requests',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/individual-rights/right-of-access/handling-requests/',
+                    snippet: 'You must provide a copy of the personal data and key supplementary information including purposes of processing, categories of data, recipients, and retention periods.',
+                    tags: ['SAR', 'Compliance', 'Response Requirements']
+                },
+                {
+                    title: 'SAR Exemptions and Restrictions',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/individual-rights/right-of-access/exemptions/',
+                    snippet: 'Limited exemptions apply to SARs, including national security, crime prevention, and where disclosure would adversely affect the rights of others.',
+                    tags: ['SAR', 'Exemptions', 'Legal Restrictions']
+                }
+            ],
+            'sar': [
+                {
+                    title: 'Subject Access Requests (SAR) - Your Right to Access Personal Data',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/individual-rights/right-of-access/',
+                    snippet: 'Individuals have the right to request access to their personal data and supplementary information. Organizations must respond within one month and cannot charge a fee in most cases.',
+                    tags: ['Individual Rights', 'SAR', 'Data Access']
+                },
+                {
+                    title: 'Excessive or Manifestly Unfounded SAR Requests',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/individual-rights/excessive-requests/',
+                    snippet: 'You can refuse or charge for requests that are manifestly unfounded or excessive. However, the burden is on you to demonstrate this and inform the individual of their right to complain.',
+                    tags: ['SAR', 'Excessive Requests', 'Fees']
+                }
+            ],
+            'eea': [
+                {
+                    title: 'European Economic Area (EEA) and UK-GDPR',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/international-transfers/eea-transfers/',
+                    snippet: 'The EEA includes all EU member states plus Iceland, Liechtenstein, and Norway. Post-Brexit, the UK is no longer part of the EEA, affecting data transfer arrangements under UK-GDPR.',
+                    tags: ['EEA', 'International Transfers', 'Brexit']
+                },
+                {
+                    title: 'Data Transfers Between UK and EEA Countries',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/international-transfers/uk-eea-transfers/',
+                    snippet: 'Following Brexit, data transfers from the UK to EEA countries are treated as international transfers requiring appropriate safeguards such as adequacy decisions or standard contractual clauses.',
+                    tags: ['EEA', 'Data Transfers', 'Post-Brexit', 'Adequacy']
+                },
+                {
+                    title: 'EEA Countries and Data Protection Standards',
+                    url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/international-transfers/eea-standards/',
+                    snippet: 'EEA countries (EU plus Iceland, Liechtenstein, Norway) maintain equivalent data protection standards under GDPR. The UK developed UK-GDPR as its own framework after leaving the EEA.',
+                    tags: ['EEA', 'Data Protection', 'GDPR Standards']
+                }
+            ],
+        };
+
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            performSearch();
+        });
+
+        function performSearch() {
+            const query = document.getElementById('searchQuery').value.toLowerCase();
+            const category = document.getElementById('categorySelect').value;
+            
+            // Show loading
+            document.getElementById('loadingDiv').style.display = 'block';
+            document.getElementById('searchBtn').disabled = true;
+            document.getElementById('resultsSection').style.display = 'none';
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                const results = findResults(query, category);
+                displayResults(results, query);
+                
+                // Hide loading
+                document.getElementById('loadingDiv').style.display = 'none';
+                document.getElementById('searchBtn').disabled = false;
+                document.getElementById('resultsSection').style.display = 'block';
+            }, 1500);
+        }
+
+        function findResults(query, category) {
+            let allResults = [];
+            
+            // Simple keyword matching
+            for (const [key, results] of Object.entries(mockResults)) {
+                if (query.includes(key) || key.includes(query)) {
+                    allResults = allResults.concat(results);
+                }
+            }
+            
+            // If category is selected, add relevant results
+            if (category) {
+                const categoryResults = mockResults[category.toLowerCase()];
+                if (categoryResults) {
+                    allResults = allResults.concat(categoryResults);
+                }
+            }
+            
+            // Remove duplicates
+            const uniqueResults = allResults.filter((result, index, self) => 
+                index === self.findIndex(r => r.url === result.url)
+            );
+            
+            return uniqueResults;
+        }
+
+        function displayResults(results, query) {
+            const resultsCount = document.getElementById('resultsCount');
+            const resultsList = document.getElementById('resultsList');
+            
+            if (results.length === 0) {
+                resultsCount.textContent = `No results found for "${query}"`;
+                resultsList.innerHTML = `
+                    <div class="no-results">
+                        <h3>No matching results found</h3>
+                        <p>Try different keywords or browse the quick links above for common UK-GDPR topics.</p>
+                        <p><strong>Tip:</strong> Try searching for terms like "data breach", "consent", "lawful basis", "SAR", or "EEA transfers"</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            resultsCount.textContent = `Found ${results.length} result${results.length > 1 ? 's' : ''} for "${query}"`;
+            
+            resultsList.innerHTML = results.map(result => `
+                <div class="result-item">
+                    <div class="result-header">
+                        <div class="result-title">${result.title}</div>
+                        <a href="${result.url}" class="result-url" target="_blank">${result.url}</a>
+                    </div>
+                    <div class="result-content">
+                        <div class="result-snippet">${result.snippet}</div>
+                        <div class="result-tags">
+                            ${result.tags.map(tag => `<span class="result-tag">${tag}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Add some example searches for demonstration
+        const searchInput = document.getElementById('searchQuery');
+        searchInput.addEventListener('focus', function() {
+            if (!this.value) {
+                this.placeholder = 'Try: "SAR requirements", "EEA data transfers", "consent requirements", or "data breach notification"';
+            }
+        });
+
+        searchInput.addEventListener('blur', function() {
+            if (!this.value) {
+                this.placeholder = 'e.g. \'data breach notification requirements\' or \'lawful basis for processing\'';
+            }
+        });
+    </script>
+</body>
+</html>
